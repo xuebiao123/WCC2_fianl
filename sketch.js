@@ -7,11 +7,16 @@ let video;
 let poseNet;
 let pose;
 let skeleton;
+let bodyposX;
+let bodyposY;
+
+// 分配食物
+let food = [];
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   background(0); 
-  fillColors = [             // 分配3种颜色
+  fillColors = [    // 分配3种颜色
     color(0, 0, 0),
     color(156, 156, 156), 
     color(83, 83, 83)
@@ -40,6 +45,8 @@ function setup() {
   
   //.on is an event listener that returns the results when a pose is detected
   poseNet.on("pose", gotPoses);
+  bodyposX = 0;
+  bodyposY = 0;
 }
 
 function draw() {
@@ -47,15 +54,9 @@ function draw() {
   //绘制树木
   
   background(255);
-  
-
   //image(video, 0, 0);
-  
-  let bodyposX = 0;
-  let bodyposY = 0;
   //if a pose is detected
   if (pose) {
-    
     //loop through all the keypoints and draw an ellipse for each one of them
     for (let i=0; i<pose.keypoints.length; i++){
       //draw a keypoint only if confidence is over a threshold
@@ -64,10 +65,8 @@ function draw() {
         ellipse(pose.keypoints[i].position.x,pose.keypoints[i].position.y, 10, 10);
       //}
     }
-
-    bodyposX = pose.keypoints[9].position.x;
-    bodyposY = pose.keypoints[9].position.y;
-  
+    bodyposX = pose.keypoints[0].position.x;
+    bodyposY = pose.keypoints[0].position.y;
     
     //loop through all the skeleton data and draw a line for each pair of neighbour joints
     // 循环浏览所有骨架数据，为每一对相邻关节画一条线。
@@ -79,6 +78,10 @@ function draw() {
       strokeWeight(4);
       line(point_a.position.x, point_a.position.y, point_b.position.x, point_b.position.y);
     }
+  }
+  else{
+     bodyposX = random(width);
+     bodyposY = random(height);
   }
 
   // 绘制视觉画面
@@ -98,19 +101,22 @@ function draw() {
     particle.bodyposY = bodyposY;
     particle.update(pose);
   }
+
+  updateFood();  // 增加食物
+
 }
 
 // 更新位置的结构体
 function Particle() {
   this.loc = createVector(random(width), random(height));  // 在这里更新位置
-  var velSize = random(3);
+  var velSize = random(3);  
   var velAng = random(TWO_PI);
   this.vel = createVector(velSize * cos(velAng), velSize * sin(velAng));
   this.vertices = [];
   this.fillColor = fillColors[int(random(fillColors.length))];
 }
 
-Particle.prototype = {
+Particle.prototype = {  // 绘制并改变形状
   render: function() {
     noStroke();
     fill(this.fillColor);
@@ -125,10 +131,9 @@ Particle.prototype = {
     endShape(CLOSE);
   },
   
-  update: function() {
-    var target = createVector(this.bodyposX, this.bodyposY);
-    var acc = p5.Vector.sub(target, this.loc).limit(1);
-    //console.log(this.bodypos);
+  update: function() {  // 改变位置的区域
+    var location = createVector(this.bodyposX, this.bodyposY);
+    var acc = p5.Vector.sub(location, this.loc).limit(1);
     acc.mult(randomGaussian(1, 1));
     acc.rotate(randomGaussian(0, PI / 3));
     this.vel.add(acc);
@@ -148,7 +153,6 @@ function drawFog(){
   rect(0,0,width,height);
   pop();
 }
-
 
 // 树的初始化
 // 绘制树作为站立点
@@ -196,6 +200,31 @@ function gotPoses(poses) {
     pose = poses[0].pose;
     skeleton = poses[0].skeleton;
   }
+}
 
+function windowResized() {  //改变窗口的大小
+  resizeCanvas(windowWidth, windowHeight);
+}
+
+// 更新食物 upatefood
+function updateFood(){  // 更新食物的位置
+  for(let i = food.length-1; i >= 0 ; i--){   //从后往前走
+    fill(100);
+    circle(food[i].x,food[i].y,food[i].d);
+    food[i].y += 1;   // 食物降落的效果，可以让它跟着手运动
+    if(food[i].y > height){
+      food.splice(i,1);//remove one from array at index i   更改并增加数组
+    }
+  }
+}
+
+function mousePressed() {   //按压分配新的位置
+   // if(food.length == 0 ){   //增加食物，和大小
+      food.push({
+          x:random(width),
+          y:random(height),
+          d:random(5,20)
+        });
+   // }
 }
 
