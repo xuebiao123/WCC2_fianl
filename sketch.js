@@ -51,6 +51,8 @@ function draw() {
 
   //image(video, 0, 0);
   
+  let bodyposX = 0;
+  let bodyposY = 0;
   //if a pose is detected
   if (pose) {
     
@@ -63,8 +65,8 @@ function draw() {
       //}
     }
 
-    let bodyposX = pose.keypoints[9].position.x;
-    let bodyposY = pose.keypoints[9].position.y;
+    bodyposX = pose.keypoints[9].position.x;
+    bodyposY = pose.keypoints[9].position.y;
   
     
     //loop through all the skeleton data and draw a line for each pair of neighbour joints
@@ -92,8 +94,8 @@ function draw() {
   for (var i = 0; i < particles.length; i++) {
     var particle = particles[i]; 
     particle.render();
-    particle.bodyposX = pose.keypoints[9].position.x;
-    particle.bodyposY = pose.keypoints[9].position.y;
+    particle.bodyposX = bodyposX;
+    particle.bodyposY = bodyposY;
     particle.update(pose);
   }
 }
@@ -123,8 +125,7 @@ Particle.prototype = {
     endShape(CLOSE);
   },
   
-  update: function(pose) {
-  
+  update: function() {
     var target = createVector(this.bodyposX, this.bodyposY);
     var acc = p5.Vector.sub(target, this.loc).limit(1);
     //console.log(this.bodypos);
