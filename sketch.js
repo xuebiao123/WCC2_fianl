@@ -92,6 +92,8 @@ function draw() {
   for (var i = 0; i < particles.length; i++) {
     var particle = particles[i]; 
     particle.render();
+    particle.bodyposX = pose.keypoints[9].position.x;
+    particle.bodyposY = pose.keypoints[9].position.y;
     particle.update(pose);
   }
 }
