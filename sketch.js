@@ -1,4 +1,4 @@
-var particles;
+var birds;
 var fillColors;
 let newAng = [];
 
@@ -11,7 +11,133 @@ let bodyposX;
 let bodyposY;
 
 // 分配食物
-let food = [];
+let food = [];   
+
+// 更新位置的结构体
+class Bird {
+  constructor(){
+  this.loc = new createVector(random(width), random(height));  // 在这里更新位置
+  var velSize = random(3);  
+  var velAng = random(TWO_PI);
+  this.vel = new createVector(velSize * cos(velAng), velSize * sin(velAng)); 
+  this.vertices = []; //顶点
+  this.fillColor = fillColors[int(random(fillColors.length))];
+
+  //鸟类初始的速度
+  this.velocity = new createVector(random(-2,2),random(-2,2));  // Velocity of shape 生物的速度 
+  this.friction = new createVector(0, 0);   // 摩擦力-阻力
+  this.desired = new createVector(0, 0);   // 吸引力
+  this.diameter = new createVector(0, 0);   //半径
+ // this.speedLimit = random(1,this.diameter/10); //限制速度
+  this.full = 0;
+
+  this.center = new createVector(0,0);
+  }
+  
+  render() {
+    noStroke();
+    fill(this.fillColor);
+    if (this.vertices.length < 3) {
+      return; 
+    }    
+
+    let centerX = 0;
+    let centerY = 0;
+    beginShape();
+    
+    for (var i = 0; i < 3; i++) {
+      var v = this.vertices[i];
+      vertex(v.x, v.y);
+      centerX = centerX + this.vertices[i].x;
+      centerY = centerY + this.vertices[i].y;
+    }
+    endShape(CLOSE);
+
+  this.center = createVector(centerX/3, centerY/3);
+  let dis1 = dist(this.center.x,this.center.y,this.vertices[0].x,this.vertices[0].y);
+  let dis2 = dist(this.center.x,this.center.y,this.vertices[1].x,this.vertices[1].y);
+  let dis3 = dist(this.center.x,this.center.y,this.vertices[2].x,this.vertices[2].y);
+  this.diameter = max(dis1,dis2,dis3);
+  console.log(this.diameter);
+  }
+  
+  update() {  // 改变位置的区域
+    var location = createVector(this.bodyposX, this.bodyposY);
+    var acc = p5.Vector.sub(location, this.loc).limit(1); //拿现在的位置减去当前的位置
+    //var acc = this.loc.limit(1); //拿现在的位置减去当前的位置
+    acc.mult(randomGaussian(1, 1));
+    acc.rotate(randomGaussian(0, PI / 3)); // 角度的变化
+    this.vel.add(acc);
+    this.vel.limit(10);
+    this.loc.add(this.vel);
+    this.vertices.push(p5.Vector.add(this.loc, this.vel.copy().rotate(random(TWO_PI))));
+
+    if (this.vertices.length > 3) {   // 通过改变数值可以改变形状中边的多少
+      this.vertices.shift(); // 循环数组，到3即删除
+      
+      // 小鸟到达边缘反弹
+      if (this.loc.x > width){
+        this.loc.x = width;
+        this.vertices.x = this.vertices.x * -1;
+      }
+      if (this.loc.x < 0) {
+        this.loc.x = 0;
+        this.vertices.x = this.vertices.x * -1;
+      }
+      if (this.loc.y < 0) {
+        this.loc.y = 0;
+        this.vertices.y = this.vertices.y * -1;
+      }
+      if (this.loc.y > height) {
+        this.loc.y = height;
+        this.vertices.y = this.vertices.y * -1; 
+      }
+      
+      // 吃到饭了
+      if(this.full > 0){
+        this.full--;
+      }
+    }
+
+}
+
+  moveToFood(x, y){ // x和y指的是食物的位置
+     
+    // 如果已经吃了就放回不执行
+    if(this.full>0){
+      return false;
+    }
+
+    this.desired.x = x;   
+    this.desired.y = y;
+    let direction = p5.Vector.sub(this.desired, this.center); //确认行径的方向
+    console.log(this.desired);
+    console.log(this.center);
+    console.log(direction.mag());
+    console.log(this.diameter);
+    
+    if (direction.mag() < this.diameter/2){     //如果距离小于？？
+      this.full = 1000;
+      return true;
+    } 
+
+    //only move if they are close to the target x & y locations
+    if(direction.mag() < 200){
+      direction.normalize(); //normalize gives us the unit vector of length 1 (i.e. just the direction )
+      this.vel.add(direction);
+    }
+    return false;
+  } 
+
+}
+
+function drawFog(){
+  push();
+  fill(32, 16);
+  noStroke();
+  rect(0,0,width,height);
+  pop();
+}
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -22,9 +148,9 @@ function setup() {
     color(83, 83, 83)
   ];
   frameRate(30);
-  particles = [];            // 分配一个数组存储每个数组的东西
+  birds = [];            // 分配一个数组存储每个数组的东西
   for (var i = 0; i < 100; i++) {        // for循环个十次得出10个
-    particles.push(new Particle());    
+    birds.push(new Bird());    
   }
   stroke(50);        
   fill(0);
@@ -93,65 +219,31 @@ function draw() {
   push();
   drawFog(); // only draw the fog evey 16 frames 只有没16帧的时候才绘制
   pop();
+
   // 不断循环更新位置
-  for (var i = 0; i < particles.length; i++) {
-    var particle = particles[i]; 
-    particle.render();
-    particle.bodyposX = bodyposX;
-    particle.bodyposY = bodyposY;
-    particle.update(pose);
+  for (var i = 0; i < birds.length; i++) {
+    var bird = birds[i]; 
+    bird.render();
+    
+    
+    if(food.length > 0){
+      // 如果有食物，就想着食物的方向移动
+      bird.bodyposX = food[food.length-1].x;
+      bird.bodyposY = food[food.length-1].y;
+      bird.update();
+      if(bird.moveToFood(food[food.length-1].x,food[food.length-1].y)){
+        food.pop();
+        } 
+      } else {
+        bird.bodyposX = bodyposX;
+        bird.bodyposY = bodyposY;
+        bird.update();
+      }
+  
   }
 
   updateFood();  // 增加食物
 
-}
-
-// 更新位置的结构体
-function Particle() {
-  this.loc = createVector(random(width), random(height));  // 在这里更新位置
-  var velSize = random(3);  
-  var velAng = random(TWO_PI);
-  this.vel = createVector(velSize * cos(velAng), velSize * sin(velAng));
-  this.vertices = [];
-  this.fillColor = fillColors[int(random(fillColors.length))];
-}
-
-Particle.prototype = {  // 绘制并改变形状
-  render: function() {
-    noStroke();
-    fill(this.fillColor);
-    if (this.vertices.length < 3) {
-      return; 
-    }    
-    beginShape();
-    for (var i = 0; i < 3; i++) {
-      var v = this.vertices[i];
-      vertex(v.x, v.y);
-    }
-    endShape(CLOSE);
-  },
-  
-  update: function() {  // 改变位置的区域
-    var location = createVector(this.bodyposX, this.bodyposY);
-    var acc = p5.Vector.sub(location, this.loc).limit(1);
-    acc.mult(randomGaussian(1, 1));
-    acc.rotate(randomGaussian(0, PI / 3));
-    this.vel.add(acc);
-    this.vel.limit(15);
-    this.loc.add(this.vel);
-    this.vertices.push(p5.Vector.add(this.loc, this.vel.copy().rotate(random(TWO_PI))));
-    if (this.vertices.length > 3) {
-      this.vertices.shift();
-    }
-  }
-}
-
-function drawFog(){
-  push();
-  fill(32, 16);
-  noStroke();
-  rect(0,0,width,height);
-  pop();
 }
 
 // 树的初始化
