@@ -1,6 +1,8 @@
 var birds;
 var fillColors;
+let bg;
 let newAng = [];
+
 
 // 身体追踪
 let video;
@@ -11,7 +13,7 @@ let bodyposX;
 let bodyposY;
 
 // 分配食物
-let food = [];   
+let food = [];
 
 // 更新位置的结构体
 class Bird {
@@ -28,7 +30,6 @@ class Bird {
   this.friction = new createVector(0, 0);   // 摩擦力-阻力
   this.desired = new createVector(0, 0);   // 吸引力
   this.diameter = new createVector(0, 0);   //半径
- // this.speedLimit = random(1,this.diameter/10); //限制速度
   this.full = 0;
 
   this.center = new createVector(0,0);
@@ -63,7 +64,6 @@ class Bird {
   update() {  // 改变位置的区域
     var location = createVector(this.bodyposX, this.bodyposY);
     var acc = p5.Vector.sub(location, this.loc).limit(1); //拿现在的位置减去当前的位置
-    //var acc = this.loc.limit(1); //拿现在的位置减去当前的位置
     acc.mult(randomGaussian(1, 1));
     acc.rotate(randomGaussian(0, PI / 3)); // 角度的变化
     this.vel.add(acc);
@@ -115,15 +115,7 @@ class Bird {
       this.full = 1000;
       return true;
     } 
-
-    //only move if they are close to the target x & y locations
-    if(direction.mag() < 200){
-      direction.normalize(); //normalize gives us the unit vector of length 1 (i.e. just the direction )
-      this.vel.add(direction);
-    }
-    return false;
   } 
-
 }
 
 function drawFog(){
@@ -136,10 +128,11 @@ function drawFog(){
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  background(0); 
+  bg = loadImage('background.png');
+  background(bg); 
   fillColors = [    // 分配3种颜色
     color(0, 0, 0),
-    color(156, 156, 156), 
+    color(50, 50, 50), 
     color(83, 83, 83)
   ];
   frameRate(30);
@@ -158,10 +151,7 @@ function setup() {
   video = createCapture(VIDEO);
   video.size(width, height);
   video.hide();
-  
-  //load poseNet pre-trained model and connect it to the video
-  //modelReady is a callback telling me when the poseNet model is done loading
-  //poseNet = ml5.poseNet(video, modelReady);
+
   poseNet = ml5.poseNet(video);
   
   //.on is an event listener that returns the results when a pose is detected
@@ -174,31 +164,18 @@ function draw() {
   //绘制背景 -- 会覆盖原来的痕迹
   //绘制树木
   
-  background(255);
-  //image(video, 0, 0);
-  //if a pose is detected
+  background(bg);
+  
+  translate(video.width, 0);
+  scale(-1, 1);
+  //存在动作于视频呈现相反的效果
   if (pose) {
-    //loop through all the keypoints and draw an ellipse for each one of them
-    for (let i=0; i<pose.keypoints.length; i++){
-      //draw a keypoint only if confidence is over a threshold
-      //if (pose.keypoints[i].score > 0.2) {
-        noStroke();
-        ellipse(pose.keypoints[i].position.x,pose.keypoints[i].position.y, 10, 10);
-      //}
-    }
+    ellipse(pose.keypoints[9].position.x,pose.keypoints[9].position.y, 10, 10);
     bodyposX = pose.keypoints[0].position.x;
     bodyposY = pose.keypoints[0].position.y;
     
     //loop through all the skeleton data and draw a line for each pair of neighbour joints
     // 循环浏览所有骨架数据，为每一对相邻关节画一条线。
-    for (let i=0; i<skeleton.length; i++){
-      //skeleton is a 2d array
-      let point_a = skeleton[i][0];
-      let point_b = skeleton[i][1];
-      stroke(0);
-      strokeWeight(4);
-      line(point_a.position.x, point_a.position.y, point_b.position.x, point_b.position.y);
-    }
   }
   else{
      bodyposX = random(width);
@@ -207,12 +184,15 @@ function draw() {
 
   // 绘制视觉画面
   push();
-  stroke(120); 
+  translate(width, 0);
+  scale(-1, 1);
+  stroke(50);
+  fill(0,0,0);
   drawTree();
   pop();
 
   push();
-  drawFog(); // only draw the fog evey 16 frames 只有没16帧的时候才绘制
+  drawFog();
   pop();
 
   // 不断循环更新位置
@@ -237,9 +217,7 @@ function draw() {
     }
   } 
 }
-
   updateFood();  // 增加食物
-
 }
 
 // 树的初始化
@@ -258,7 +236,6 @@ function drawTree(){
 // 与Tree.pde中的递归功能相同，只是使用随机数
 function branch(len, theta, Ang){
 push();
-fill(255,255,255);  //可通过这个来改变果实的颜色
 rotate(theta); // rotate to the angle provided
 strokeWeight(sqrt(len*10)*0.3);
 line(0,0, len, 0); // draw one branch
@@ -269,7 +246,12 @@ if(len > 30.0){ // stop condition - very important!
   branch(len * 0.7, - newAng[Ang]*0.4, Ang); // left branch
   branch(len * 0.85, newAng[Ang], Ang);   // right branch  
 }else{
+  push();
+  fill(80);
+  stroke(50);
+  strokeWeight(3);
   ellipse(0,0,10,10); // only draw a leaf
+  pop();
 }
 pop();
 
@@ -290,14 +272,12 @@ function gotPoses(poses) {
   }
 }
 
-function windowResized() {  //改变窗口的大小
-  resizeCanvas(windowWidth, windowHeight);
-}
+
 
 // 更新食物 upatefood
 function updateFood(){  // 更新食物的位置
   for(let i = food.length-1; i >= 0 ; i--){   //从后往前走
-    fill(100);
+    fill(0);
     circle(food[i].x,food[i].y,food[i].d);
     food[i].y += 1;   // 食物降落的效果，可以让它跟着手运动
     if(food[i].y > height){
@@ -311,8 +291,11 @@ function mousePressed() {   //按压分配新的位置
       food.push({
           x:random(width),
           y:random(height),
-          d:random(5,20)
+          d:random(15,40)
         });
    // }
 }
 
+function windowResized() {  //改变窗口的大小
+  resizeCanvas(windowWidth, windowHeight);
+}
