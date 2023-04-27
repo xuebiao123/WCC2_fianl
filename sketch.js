@@ -58,7 +58,6 @@ class Bird {
   let dis2 = dist(this.center.x,this.center.y,this.vertices[1].x,this.vertices[1].y);
   let dis3 = dist(this.center.x,this.center.y,this.vertices[2].x,this.vertices[2].y);
   this.diameter = max(dis1,dis2,dis3);
-  console.log(this.diameter);
   }
   
   update() {  // 改变位置的区域
@@ -111,10 +110,6 @@ class Bird {
     this.desired.x = x;   
     this.desired.y = y;
     let direction = p5.Vector.sub(this.desired, this.center); //确认行径的方向
-    console.log(this.desired);
-    console.log(this.center);
-    console.log(direction.mag());
-    console.log(this.diameter);
     
     if (direction.mag() < this.diameter/2){     //如果距离小于？？
       this.full = 1000;
@@ -157,7 +152,7 @@ function setup() {
   for(let i=0; i<30; i++){
     newAng[i] = random(PI*0.3);
   }
-  
+
   //身体追踪
   // load webcam and hide the video element to only view the canvas
   video = createCapture(VIDEO);
@@ -224,23 +219,24 @@ function draw() {
   for (var i = 0; i < birds.length; i++) {
     var bird = birds[i]; 
     bird.render();
-    
-    
+    bird.bodyposX = bodyposX;
+    bird.bodyposY = bodyposY;
+    bird.update();
+
     if(food.length > 0){
-      // 如果有食物，就想着食物的方向移动
-      bird.bodyposX = food[food.length-1].x;
-      bird.bodyposY = food[food.length-1].y;
-      bird.update();
-      if(bird.moveToFood(food[food.length-1].x,food[food.length-1].y)){
-        food.pop();
-        } 
-      } else {
-        bird.bodyposX = bodyposX;
-        bird.bodyposY = bodyposY;
+      for(let i=0; i< food.length ;i++){
+      let distance= dist(bird.center.x, bird.center.y, food[i].x, food[i].y);
+      if(distance < 300){  // 通过距离来判断吃到的多少
+        bird.bodyposX = food[food.length-1].x;
+        bird.bodyposY = food[food.length-1].y;
         bird.update();
+        if(bird.moveToFood(food[food.length-1].x,food[food.length-1].y)){
+          food.pop();
+          } 
       }
-  
-  }
+    }
+  } 
+}
 
   updateFood();  // 增加食物
 
