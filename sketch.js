@@ -38,7 +38,7 @@ class Bird {
   render() {
     noStroke();
     fill(this.fillColor);
-    if (this.vertices.length < 3) {
+    if (this.vertices.length < 4) {
       return; 
     }    
 
@@ -46,7 +46,7 @@ class Bird {
     let centerY = 0;
     beginShape();
     
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 4; i++) {
       var v = this.vertices[i];
       vertex(v.x, v.y);
       centerX = centerX + this.vertices[i].x;
@@ -71,7 +71,7 @@ class Bird {
     this.loc.add(this.vel);
     this.vertices.push(p5.Vector.add(this.loc, this.vel.copy().rotate(random(TWO_PI))));
 
-    if (this.vertices.length > 3) {   // 通过改变数值可以改变形状中边的多少
+    if (this.vertices.length > 4) {   // 通过改变数值可以改变形状中边的多少
       this.vertices.shift(); // 循环数组，到3即删除
       
       // 小鸟到达边缘反弹
@@ -137,7 +137,7 @@ function setup() {
   ];
   frameRate(30);
   birds = [];            // 分配一个数组存储每个数组的东西
-  for (var i = 0; i < 100; i++) {        // for循环个十次得出10个
+  for (var i = 0; i < 90; i++) {        // for循环个十次得出10个
     birds.push(new Bird());    
   }
   stroke(50);        
