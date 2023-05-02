@@ -28,7 +28,7 @@ class Bird {
   var velSize = random(3);  
   var velAng = random(TWO_PI);
   this.vel = new createVector(velSize * cos(velAng), velSize * sin(velAng)); 
-  this.vertices = []; //顶点
+  this.vertices = []; 
   this.fillColor = fillColors[int(random(fillColors.length))];
 
   // ------The initial speed of the pigeons--------
@@ -36,7 +36,6 @@ class Bird {
   this.desired = new createVector(0, 0);   // Attractiveness - Anticipation to the next direction
   this.diameter = new createVector(0, 0);   // Radius of bird
   this.full = 0;
-
   this.center = new createVector(0,0);
   }
   
