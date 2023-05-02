@@ -1,10 +1,16 @@
+// Reference code links for bird：https://openprocessing.org/sketch/871526
+// Reference code links for eat：https://editor.p5js.org/beckyaston/sketches/I3lZ7fCyc
+// Reference code links for tree：https://editor.p5js.org/joemcalister/sketches/6v-N3urTT
+// Reference code links for body track: https://editor.p5js.org/eri.kalaitzidi/sketches/ODpPqP2un
+
+
+// -----Initialize the variables for drawing the bird-----
 var birds;
 var fillColors;
 let bg;
 let newAng = [];
 
-
-// 身体追踪
+// -----Initialising variables for body tracking----------
 let video;
 let poseNet;
 let pose;
@@ -12,29 +18,29 @@ let skeleton;
 let bodyposX;
 let bodyposY;
 
-// 分配食物
+// --Distribution of food--
 let food = [];
 
-// 更新位置的结构体
+// ----Update the structure of the position for bird-----
 class Bird {
   constructor(){
-  this.loc = new createVector(random(width), random(height));  // 在这里更新位置
+  this.loc = new createVector(random(width), random(height));  // Update the location here
   var velSize = random(3);  
   var velAng = random(TWO_PI);
   this.vel = new createVector(velSize * cos(velAng), velSize * sin(velAng)); 
   this.vertices = []; //顶点
   this.fillColor = fillColors[int(random(fillColors.length))];
 
-  //鸟类初始的速度
-  this.velocity = new createVector(random(-2,2),random(-2,2));  // Velocity of shape 生物的速度 
-  this.friction = new createVector(0, 0);   // 摩擦力-阻力
-  this.desired = new createVector(0, 0);   // 吸引力
-  this.diameter = new createVector(0, 0);   //半径
+  // ------The initial speed of the pigeons--------
+  this.velocity = new createVector(random(-2,2),random(-2,2));  // Velocity of shape
+  this.desired = new createVector(0, 0);   // Attractiveness - Anticipation to the next direction
+  this.diameter = new createVector(0, 0);   // Radius of bird
   this.full = 0;
 
   this.center = new createVector(0,0);
   }
   
+  // -----------Preparation for drawing the shape of the dove---------
   render() {
     noStroke();
     fill(this.fillColor);
@@ -61,20 +67,21 @@ class Bird {
   this.diameter = max(dis1,dis2,dis3);
   }
   
-  update() {  // 改变位置的区域
+  // --------Change the area of the latest position----------
+  update() {  
     var location = createVector(this.bodyposX, this.bodyposY);
-    var acc = p5.Vector.sub(location, this.loc).limit(1); //拿现在的位置减去当前的位置
+    var acc = p5.Vector.sub(location, this.loc).limit(1); //Take the current position and subtract it from the current position
     acc.mult(randomGaussian(1, 1));
-    acc.rotate(randomGaussian(0, PI / 3)); // 角度的变化
+    acc.rotate(randomGaussian(0, PI / 3)); // Change of angle
     this.vel.add(acc);
     this.vel.limit(10);
     this.loc.add(this.vel);
     this.vertices.push(p5.Vector.add(this.loc, this.vel.copy().rotate(random(TWO_PI))));
 
-    if (this.vertices.length > 4) {   // 通过改变数值可以改变形状中边的多少
-      this.vertices.shift(); // 循环数组，到3即删除
+    if (this.vertices.length > 4) {   // The number of edges in a shape can be changed by changing the value
+      this.vertices.shift(); // Loop through the array and delete when it reaches 3
       
-      // 小鸟到达边缘反弹
+      // ----------Birdie reaches edge bounce------------
       if (this.loc.x > width){
         this.loc.x = width;
         this.vertices.x = this.vertices.x * -1;
@@ -92,7 +99,7 @@ class Bird {
         this.vertices.y = this.vertices.y * -1; 
       }
       
-      // 吃到饭了
+      // ----- Eat food ------ 
       if(this.full > 0){
         this.full--;
       }
@@ -100,44 +107,36 @@ class Bird {
 
 }
 
-  moveToFood(x, y){ // x和y指的是食物的位置
+  moveToFood(x, y){ // x and y refer to the location of the food
      
-    // 如果已经吃了就放回不执行
+    // If it has been eaten, put it back without execution
     if(this.full>0){
       return false;
     }
 
     this.desired.x = x;   
     this.desired.y = y;
-    let direction = p5.Vector.sub(this.desired, this.center); //确认行径的方向
+    let direction = p5.Vector.sub(this.desired, this.center); // Confirmation of the direction of travel
     
-    if (direction.mag() < this.diameter/2){     //如果距离小于？？
+    if (direction.mag() < this.diameter/2){     //If the distance is less than means it has been eaten
       this.full = 1000;
       return true;
     } 
   } 
 }
 
-function drawFog(){
-  push();
-  fill(32, 16);
-  noStroke();
-  rect(0,0,width,height);
-  pop();
-}
-
 function setup() {
   createCanvas(windowWidth, windowHeight);
   bg = loadImage('background.png');
   background(bg); 
-  fillColors = [    // 分配3种颜色
+  fillColors = [    // Assign 3 colours for bird
     color(0, 0, 0),
     color(50, 50, 50), 
     color(83, 83, 83)
   ];
   frameRate(30);
-  birds = [];            // 分配一个数组存储每个数组的东西
-  for (var i = 0; i < 90; i++) {        // for循环个十次得出10个
+  birds = [];            // Allocate an array to store the stuff of each array
+  for (var i = 0; i < 90; i++) {     // the number of bird for I want 
     birds.push(new Bird());    
   }
   stroke(50);        
@@ -146,7 +145,7 @@ function setup() {
     newAng[i] = random(PI*0.3);
   }
 
-  //身体追踪
+  // -------Body tracking--------
   // load webcam and hide the video element to only view the canvas
   video = createCapture(VIDEO);
   video.size(width, height);
@@ -160,29 +159,23 @@ function setup() {
   bodyposY = 0;
 }
 
-function draw() {
-  //绘制背景 -- 会覆盖原来的痕迹
-  //绘制树木
-  
+function draw() {  
   background(bg);
   
   translate(video.width, 0);
   scale(-1, 1);
-  //存在动作于视频呈现相反的效果
+  // --Presence of action in contrast to video--
   if (pose) {
     ellipse(pose.keypoints[9].position.x,pose.keypoints[9].position.y, 10, 10);
     bodyposX = pose.keypoints[0].position.x;
     bodyposY = pose.keypoints[0].position.y;
-    
-    //loop through all the skeleton data and draw a line for each pair of neighbour joints
-    // 循环浏览所有骨架数据，为每一对相邻关节画一条线。
   }
   else{
      bodyposX = random(width);
      bodyposY = random(height);
   }
 
-  // 绘制视觉画面
+  // ----- Drawing the visual picture ------
   push();
   translate(width, 0);
   scale(-1, 1);
@@ -195,7 +188,7 @@ function draw() {
   drawFog();
   pop();
 
-  // 不断循环更新位置
+  // ------ Constantly recurring position updates -------
   for (var i = 0; i < birds.length; i++) {
     var bird = birds[i]; 
     bird.render();
@@ -206,7 +199,7 @@ function draw() {
     if(food.length > 0){
       for(let i=0; i< food.length ;i++){
       let distance= dist(bird.center.x, bird.center.y, food[i].x, food[i].y);
-      if(distance < 300){  // 通过距离来判断吃到的多少
+      if(distance < 300){  // Judging how much to eat by distance
         bird.bodyposX = food[food.length-1].x;
         bird.bodyposY = food[food.length-1].y;
         bird.update();
@@ -217,11 +210,22 @@ function draw() {
     }
   } 
 }
-  updateFood();  // 增加食物
+  updateFood();  // Increase food
 }
 
-// 树的初始化
-// 绘制树作为站立点
+
+//   ------ tree code-------
+function drawFog(){
+  push();
+  fill(32, 16);
+  noStroke();
+  rect(0,0,width,height);
+  pop();
+}
+
+
+// Initialization of the tree
+// Drawing the tree as a standing point
 function drawTree(){
   let bLen = 180;
   let bAng = -PI*0.5;
@@ -233,7 +237,6 @@ function drawTree(){
 }
 
 // same recusive function as in Tree.pde, only using random numbers
-// 与Tree.pde中的递归功能相同，只是使用随机数
 function branch(len, theta, Ang){
 push();
 rotate(theta); // rotate to the angle provided
@@ -272,22 +275,21 @@ function gotPoses(poses) {
   }
 }
 
-
-
-// 更新食物 upatefood
-function updateFood(){  // 更新食物的位置
-  for(let i = food.length-1; i >= 0 ; i--){   //从后往前走
+// -----------Updating food upatefood----------
+function updateFood(){  // Update the location of food
+  for(let i = food.length-1; i >= 0 ; i--){   //From back to front
     fill(0);
     circle(food[i].x,food[i].y,food[i].d);
-    food[i].y += 1;   // 食物降落的效果，可以让它跟着手运动
+    food[i].y += 1;   // Effect of food landing
     if(food[i].y > height){
-      food.splice(i,1);//remove one from array at index i   更改并增加数组
+      food.splice(i,1);//remove one from array at index i 
     }
   }
 }
 
-function mousePressed() {   //按压分配新的位置
-   // if(food.length == 0 ){   //增加食物，和大小
+// ------- Press to assign new position for food ---------
+function mousePressed() {   
+   // if(food.length == 0 ){   //Increase in food, and size
       food.push({
           x:random(width),
           y:random(height),
@@ -296,6 +298,7 @@ function mousePressed() {   //按压分配新的位置
    // }
 }
 
-function windowResized() {  //改变窗口的大小
+// ------Change the size of the window--------
+function windowResized() {  
   resizeCanvas(windowWidth, windowHeight);
 }
